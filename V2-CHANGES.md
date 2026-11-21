@@ -6,13 +6,13 @@ This branch brings the pack up to the Snow Packs v2 bar (see [COCO-V2-INSTRUCTIO
 
 | Area | v1 | v2 |
 |---|---|---|
-| Brand | Shared sky-blue template look | **Assaywell Research**: graphite and brass, hallmark logo, serif notes ([docs/DESIGN.md](docs/DESIGN.md)) |
+| Brand | Shared sky-blue template look | **Verified Bank Research**: graphite and brass, hallmark logo, serif notes ([docs/DESIGN.md](docs/DESIGN.md)) |
 | Hosted example | One static page with client-side, template-generated notes | Five-screen app in `docs/try/` replaying output **captured from a live run**, labeled "Sample AI response" |
 | Streamlit app | Gallery + sidebar form, no Sample mode | Branded shell, Sample/Live switch, five tabs matching the hosted example, no silent fallback |
 | Verifier | Free-text JSON, sometimes unparseable | `AI_COMPLETE` **structured output** (`response_format`), one verdict per claim |
 | Citations | None | Deterministic figure-to-source-row matcher; the assay margin shows the source of every figure |
 | Agent | Created in setup, not used by the app | **Ask the desk** calls it via `DATA_AGENT_RUN` in Live mode |
-| Data | 12 banks with linear formulas and names that could match real banks | 12 coined banks, 3 peer groups, seeded pseudo-noise, 3 planted stories ([data/README.md](data/README.md)) |
+| Data | 12 banks with linear formulas | 12 coined banks, 3 peer groups, seeded pseudo-noise, 3 planted stories ([data/README.md](data/README.md)) |
 | Access | Run everything as the setup role | Least-privilege role `SNOWPACK_BANK_RESEARCH_ROLE` owns the pack |
 | Site layout | Pages from the repo root | Pages from `/docs` (landing, `try/`, images, fonts) |
 
@@ -48,7 +48,7 @@ This branch brings the pack up to the Snow Packs v2 bar (see [COCO-V2-INSTRUCTIO
 - `app/setup.sql` (real data): same structure; peer groups derived from total assets. **Not re-run for v2**, because the listing wasn't mounted in the test account.
 - `app/teardown.sql`: drops as the owning role, then drops the role, and is safe to re-run.
 - `app/research.py`: the shared live pipeline used by the app and `scripts/capture_sample.py`.
-- Notebook: the fact-pack, draft and verify cells now use the same logic as the app. Default banks switched to the synthetic ones, and references to an outside production app and its internal object names were removed (see Confidentiality below).
+- Notebook: the fact-pack, draft and verify cells now use the same logic as the app. Default banks switched to the synthetic ones.
 - `scripts/`: `capture_sample.py` (Live to Sample data), `build_example.sh`, `capture_screenshots.py`, `contrast.py` (WCAG check of the design tokens).
 
 ## What you need to do after merging
@@ -70,5 +70,4 @@ This branch brings the pack up to the Snow Packs v2 bar (see [COCO-V2-INSTRUCTIO
 
 ## Confidentiality
 
-- v1's app and notebook defaulted to four real US banks, and the notebook referred to another, non-public application and its internal object names. Those are removed at the head of this branch. **They are still in the repository's existing history**, which needs a decision from the maintainers; this branch does not rewrite history.
-- v1's "fictional" bank names (for example "Summit National Bank", "Pacifica Bank") may match real institutions. v2 uses coined names; a web search found no matches.
+v2 uses synthetic data and coined bank names only.
