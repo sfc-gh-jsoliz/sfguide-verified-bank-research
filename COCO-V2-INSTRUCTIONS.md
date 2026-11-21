@@ -11,7 +11,7 @@ Match their polish and depth, but don't copy their look.
 
 ## 1. Design first: `docs/DESIGN.md`
 Before writing UI code, write `docs/DESIGN.md` with:
-- **A fictional brand:** name, logo mark as inline SVG, and voice, suited to the pack's audience. Check that the name isn't a real firm.
+- **A visual brand:** logo mark as inline SVG, voice, palette and type, suited to the pack's audience. Don't invent a coined product name. Title the app with the pack's plain name, for example "Workforce Intelligence". A short, real, plain-English word that fits the job is fine only if it reads naturally, like "Odometer" for auto-finance portfolio analytics; when in doubt, use no name.
 - **A design direction:** palette with hex values, typography, layout model, density, chart style and motion.
 - **What makes it distinct:** look at at least 5 packs in the live catalog and name what you are avoiding. No two packs should share a palette, layout or hero treatment.
 
