@@ -28,15 +28,14 @@ DATA_RULES = (
     "for the reporting quarter, using ONLY the FACTS JSON.\n"
     "DATA RULES (mandatory):\n"
     "1. Use ONLY numbers present in FACTS. Copy them exactly. Never estimate, extrapolate or add outside figures.\n"
-    "2. roa_fraction, roe_fraction and equity_to_assets_fraction are fractions (0.015 = 1.50%). Write them as "
-    "percentages with exactly two decimals.\n"
-    "3. Dollar fields are USD. Write them in $B with one decimal (or $T with two decimals above $1,000B, or $M with "
-    "one decimal below $1B).\n"
+    "2. Every figure you write must be copied verbatim from a *_display field (for example total_assets_display "
+    "\"$151.7B\", roa_display \"0.46%\"). Never reformat, round or convert the raw *_usd or *_fraction values.\n"
+    "3. Year-over-year changes: copy the *_change_display field without its sign, written like \"down 0.48 pp\" or "
+    "\"up 0.02 pp\".\n"
     "4. No hedging words (likely, approximately, around, could, industry-leading) and no market or consensus claims.\n"
     "5. If a figure is missing, write n/d. Do not invent a row. Do not name any real bank or company.\n"
     "6. Do not calculate anything. Do not state ratios, multiples or relative changes (\"half\", \"twice\", "
-    "\"x% decline\"). For year-over-year changes copy the *_change_pp_vs_year_ago fields, written like \"down 0.48 pp\". "
-    "For size rankings copy asset_rank_in_group, written like \"3rd of 4 by total assets\".\n"
+    "\"x% decline\"). For size rankings copy asset_rank_in_group, written like \"3rd of 4 by total assets\".\n"
     "OUTPUT: markdown starting with '# ', then a one-line '**Takeaway.**' paragraph, a peer comparison table "
     "(Bank, Total assets, Deposits, ROA, ROE, Equity/assets) for the reporting quarter, then exactly 3 short bullets "
     "(one on scale, one on profitability with the year-ago change, one on capital). End with a '## Data coverage' "
@@ -45,15 +44,14 @@ DATA_RULES = (
 
 VERIFY_RULES = (
     "You are a fact-checker for bank research notes. Compare the DRAFT against the FACTS JSON, the only allowed "
-    "source. Check every number and every claim. A number is supported only if it equals a FACTS value after the "
-    "stated unit conversion (fractions to %, USD to $B or $T, rounding to the shown decimals). Year-over-year "
-    "changes must equal a *_change_pp_vs_year_ago field. Rankings and comparisons (largest, smallest, 2nd, above, "
-    "below, trailing, middle of the range) must hold in FACTS. Hedge words are likely, approximately, "
-    "around, could, industry-leading.\n"
-    "Return one finding per factual claim you checked, with verdict SUPPORTED, UNSUPPORTED or HEDGED. Decide each "
-    "reason first: one short sentence comparing the claim with the FACTS value. Then the verdict, which must agree "
-    "with the reason. "
-    "status is 'verified' when every verdict is SUPPORTED, else 'needs_review'. residual_hedges counts hedge words."
+    "source. Every figure in the draft must match a *_display value in FACTS for the same bank and quarter, "
+    "character for character (a change written \"down 0.48 pp\" matches \"-0.48 pp\"). The display values are "
+    "already correctly rounded: never re-derive them from the raw *_usd or *_fraction fields. Rankings and "
+    "comparisons (largest, smallest, lowest, 2nd, above, below, trailing, middle of the range) must hold in FACTS. "
+    "Hedge words are likely, approximately, around, could, industry-leading.\n"
+    "Return one finding per factual claim you checked. reason first: one short sentence comparing the claim with "
+    "the FACTS value. Then the verdict, SUPPORTED, UNSUPPORTED or HEDGED, which must agree with the reason. "
+    "residual_hedges counts hedge words."
 )
 
 VERIFY_FORMAT = (
@@ -88,6 +86,8 @@ def build_fact_pack(session, names, quarter):
     """Reporting-quarter and year-ago rows for the chosen banks. The reporting-quarter rows also carry the
     year-over-year changes (percentage points) and the asset rank within the group, so the model copies
     them instead of calculating."""
+    usd = lambda c: (f"IFF({c} < 0, '-', '') || '$' || CASE WHEN ABS({c}) >= 1e12 THEN TO_CHAR(ABS({c}) / 1e12, 'FM990.00') || 'T' "
+                     f"WHEN ABS({c}) >= 1e9 THEN TO_CHAR(ABS({c}) / 1e9, 'FM9990.0') || 'B' ELSE TO_CHAR(ABS({c}) / 1e6, 'FM9990.0') || 'M' END")
     row = _rows(session, f"""
         WITH m AS (
           SELECT * FROM {SCHEMA}.BANK_QUARTERLY_METRICS
@@ -108,8 +108,16 @@ def build_fact_pack(session, names, quarter):
                  'net_income_qtr_usd', net_income_qtr,
                  'roa_fraction', return_on_assets, 'roe_fraction', return_on_equity,
                  'equity_to_assets_fraction', equity_to_assets,
+                 'total_assets_display', {usd('total_assets')}, 'total_deposits_display', {usd('total_deposits')},
+                 'net_income_qtr_display', {usd('net_income_qtr')},
+                 'roa_display', TO_CHAR(return_on_assets * 100, 'FM990.00') || '%',
+                 'roe_display', TO_CHAR(return_on_equity * 100, 'FM990.00') || '%',
+                 'equity_to_assets_display', TO_CHAR(equity_to_assets * 100, 'FM990.00') || '%',
                  'asset_rank_in_group', asset_rank || ' of ' || group_size,
                  'roa_change_pp_vs_year_ago', IFF(roa_prev IS NULL, NULL, ROUND((return_on_assets - roa_prev) * 100, 2)),
+                 'roa_change_display', IFF(roa_prev IS NULL, NULL, TO_CHAR((return_on_assets - roa_prev) * 100, 'FMS0.00') || ' pp'),
+                 'roe_change_display', IFF(roe_prev IS NULL, NULL, TO_CHAR((return_on_equity - roe_prev) * 100, 'FMS0.00') || ' pp'),
+                 'equity_to_assets_change_display', IFF(eqta_prev IS NULL, NULL, TO_CHAR((equity_to_assets - eqta_prev) * 100, 'FMS0.00') || ' pp'),
                  'roe_change_pp_vs_year_ago', IFF(roe_prev IS NULL, NULL, ROUND((return_on_equity - roe_prev) * 100, 2)),
                  'equity_to_assets_change_pp_vs_year_ago', IFF(eqta_prev IS NULL, NULL, ROUND((equity_to_assets - eqta_prev) * 100, 2))))
                  WITHIN GROUP (ORDER BY quarter_end DESC, total_assets DESC) AS pack
@@ -120,7 +128,8 @@ def build_fact_pack(session, names, quarter):
     for r in pack:
         if r["quarter_end"] != quarter:
             for k in ("roa_change_pp_vs_year_ago", "roe_change_pp_vs_year_ago",
-                      "equity_to_assets_change_pp_vs_year_ago"):
+                      "equity_to_assets_change_pp_vs_year_ago", "roa_change_display", "roe_change_display",
+                      "equity_to_assets_change_display"):
                 r.pop(k, None)
     return pack
 
@@ -166,7 +175,7 @@ def verify_note(session, fact_pack, draft):
     findings = [f for f in checked if str(f.get("verdict", "")).upper() != "SUPPORTED"]
     v["findings"] = findings
     v["claims_checked"] = len(checked)
-    v["status"] = "verified" if v.get("status") == "verified" and not findings else "needs_review"
+    v["status"] = "verified" if checked and not findings else "needs_review"
     return v, ms
 
 

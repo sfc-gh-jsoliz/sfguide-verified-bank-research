@@ -35,7 +35,7 @@
 | `--review` | `#9C3F0B` | `#F0965A` | Needs review, unsupported claims |
 | `--assay` | `#5B3970` | `#C9A2DB` | AI / verifier output, Cortex steps |
 
-Contrast (checked with `scripts/contrast.py`): every text token passes WCAG AA (4.5:1) on `--bg`, `--surface` and its own 12% tinted pill. Ink on the brass button is 9.6:1.
+Contrast (checked with `scripts/contrast.py`): every text token passes WCAG AA (4.5:1) on `--bg`, `--surface` and its own 12% tinted pill. Ink on the brass button is 8.6:1.
 
 ### Typography
 - **Newsreader** (serif, OFL) for headings and the research note body: it reads like a published note.

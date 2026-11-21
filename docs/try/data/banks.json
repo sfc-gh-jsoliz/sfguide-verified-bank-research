@@ -1,0 +1,98 @@
+[
+ {
+  "ID_RSSD": 90001,
+  "BANK_NAME": "Corvale National Bank, N.A.",
+  "CITY": "New York",
+  "STATE": "NY",
+  "FEDERAL_REGULATOR": "OCC",
+  "PEER_GROUP": "Large"
+ },
+ {
+  "ID_RSSD": 90002,
+  "BANK_NAME": "Halvern Bank & Trust",
+  "CITY": "Boston",
+  "STATE": "MA",
+  "FEDERAL_REGULATOR": "FRS",
+  "PEER_GROUP": "Large"
+ },
+ {
+  "ID_RSSD": 90003,
+  "BANK_NAME": "Brindlemoor Bank",
+  "CITY": "Seattle",
+  "STATE": "WA",
+  "FEDERAL_REGULATOR": "OCC",
+  "PEER_GROUP": "Large"
+ },
+ {
+  "ID_RSSD": 90004,
+  "BANK_NAME": "Quillmere Savings Bank",
+  "CITY": "Chicago",
+  "STATE": "IL",
+  "FEDERAL_REGULATOR": "FDIC",
+  "PEER_GROUP": "Large"
+ },
+ {
+  "ID_RSSD": 90005,
+  "BANK_NAME": "Tarrowind Commercial Bank",
+  "CITY": "Charlotte",
+  "STATE": "NC",
+  "FEDERAL_REGULATOR": "FRS",
+  "PEER_GROUP": "Regional"
+ },
+ {
+  "ID_RSSD": 90006,
+  "BANK_NAME": "Vessick Federal Savings",
+  "CITY": "Columbus",
+  "STATE": "OH",
+  "FEDERAL_REGULATOR": "OCC",
+  "PEER_GROUP": "Regional"
+ },
+ {
+  "ID_RSSD": 90007,
+  "BANK_NAME": "Ombrel National Bank",
+  "CITY": "Phoenix",
+  "STATE": "AZ",
+  "FEDERAL_REGULATOR": "OCC",
+  "PEER_GROUP": "Regional"
+ },
+ {
+  "ID_RSSD": 90008,
+  "BANK_NAME": "Kestrova Bank",
+  "CITY": "San Diego",
+  "STATE": "CA",
+  "FEDERAL_REGULATOR": "FDIC",
+  "PEER_GROUP": "Regional"
+ },
+ {
+  "ID_RSSD": 90009,
+  "BANK_NAME": "Sallowmere Trust Company",
+  "CITY": "Milwaukee",
+  "STATE": "WI",
+  "FEDERAL_REGULATOR": "FRS",
+  "PEER_GROUP": "Community"
+ },
+ {
+  "ID_RSSD": 90010,
+  "BANK_NAME": "Pellandry Community Bank",
+  "CITY": "Denver",
+  "STATE": "CO",
+  "FEDERAL_REGULATOR": "FDIC",
+  "PEER_GROUP": "Community"
+ },
+ {
+  "ID_RSSD": 90011,
+  "BANK_NAME": "Morvantis Bank",
+  "CITY": "Pittsburgh",
+  "STATE": "PA",
+  "FEDERAL_REGULATOR": "FDIC",
+  "PEER_GROUP": "Community"
+ },
+ {
+  "ID_RSSD": 90012,
+  "BANK_NAME": "Yarrowdel Savings Bank",
+  "CITY": "Memphis",
+  "STATE": "TN",
+  "FEDERAL_REGULATOR": "FDIC",
+  "PEER_GROUP": "Community"
+ }
+]

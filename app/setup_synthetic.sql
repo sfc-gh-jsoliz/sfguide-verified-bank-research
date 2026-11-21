@@ -112,6 +112,33 @@ SELECT
   ROUND(assets * (0.24 + 0.03 * n1), -6)         AS re_loans_domestic
 FROM c;
 
+-- 2b'. Watchlist rules (the Desk shows these; thresholds are illustrative) -----
+CREATE OR REPLACE VIEW WATCHLIST_SIGNALS AS
+WITH m AS (
+  SELECT id_rssd, bank_name, quarter_end, total_assets, total_deposits, return_on_assets, equity_to_assets,
+         MAX(quarter_end) OVER () AS latest
+  FROM BANK_QUARTERLY_METRICS
+), now_ago AS (
+  SELECT n.id_rssd, n.bank_name,
+         n.total_deposits / n.total_assets AS dep_now, a.total_deposits / a.total_assets AS dep_ago,
+         n.return_on_assets AS roa_now, a.return_on_assets AS roa_ago, n.equity_to_assets AS eqta_now
+  FROM m n JOIN m a ON a.id_rssd = n.id_rssd AND a.quarter_end = DATEADD(year, -1, n.latest)
+  WHERE n.quarter_end = n.latest
+)
+SELECT id_rssd, bank_name, 'Deposit runoff' AS signal,
+       'Deposits/assets ' || TO_CHAR(dep_ago * 100, 'FM90.0') || '% -> ' || TO_CHAR(dep_now * 100, 'FM90.0') || '% in a year' AS detail
+FROM now_ago WHERE dep_ago - dep_now > 0.06
+UNION ALL
+SELECT m.id_rssd, m.bank_name, 'Quarterly loss',
+       'ROA ' || TO_CHAR(m.return_on_assets * 100, 'FM90.00') || '% in quarter ending ' || m.quarter_end::STRING
+FROM m WHERE m.return_on_assets < 0
+UNION ALL
+SELECT id_rssd, bank_name, 'ROA compression', 'ROA ' || TO_CHAR((roa_now - roa_ago) * 100, 'FMS0.00') || ' pp year over year'
+FROM now_ago WHERE (roa_now - roa_ago) * 100 < -0.3
+UNION ALL
+SELECT id_rssd, bank_name, 'Thin capital', 'Equity/assets ' || TO_CHAR(eqta_now * 100, 'FM90.00') || '% (below 8.00%)'
+FROM now_ago WHERE eqta_now < 0.08;
+
 -- 2c. Data-source marker (the app reads this to show the right badge) ----------
 CREATE OR REPLACE VIEW DATA_SOURCE_INFO AS
 SELECT 'synthetic' AS mode,
