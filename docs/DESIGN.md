@@ -1,8 +1,8 @@
-# Design: Assaywell Research
+# Design: Verified Bank Research
 
 ## Brand
 
-**Assaywell Research** is a fictional bank research desk. An *assay* tests metal for purity, and a *hallmark* is the stamp that certifies it. The product works the same way: every research note is tested against governed figures before it gets its mark. (The name is coined; we found no financial firm by that name.)
+**Verified Bank Research** is the research desk of a fictional bank. The visual idea is an assay and a hallmark: every research note is tested against governed figures before it gets its stamp, which reads VERIFIED or NEEDS REVIEW.
 
 - **Audience:** bank and financial-institution research analysts, credit analysts and their reviewers.
 - **Voice:** a research editor. Short, exact, evidence-first. It says "Verified against 18 governed figures", never "AI-powered insights". Numbers come with their quarter and source.

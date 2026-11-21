@@ -1,4 +1,4 @@
-/* Assaywell Research — no-account example (Sample mode).
+/* Verified Bank Research — no-account example (Sample mode).
    Every number and AI text here was captured from a Live run of the pack on
    SNOWPACK_BANK_RESEARCH (scripts/capture_sample.py). Nothing is generated in the browser
    except formatting, the deterministic watchlist rules and the citation matcher. */
@@ -20,11 +20,10 @@
     spark: `<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M8 1.5 9.6 6.4 14.5 8 9.6 9.6 8 14.5 6.4 9.6 1.5 8 6.4 6.4Z" fill="currentColor"/></svg>`,
     moon: `<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M13.5 10.2A6 6 0 0 1 5.8 2.5a6 6 0 1 0 7.7 7.7Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>`,
   };
-  const hallmark = (ok) => `<svg class="hallmark stamp" viewBox="0 0 100 100" role="img" aria-label="${ok ? "Verified hallmark" : "Needs review mark"}">
+  const hallmark = (ok) => `<svg class="hallmark stamp" viewBox="0 0 100 100" role="img" aria-label="${ok ? "Verified" : "Needs review"}">
     <circle cx="50" cy="50" r="44" fill="none" stroke="${ok ? "var(--verified)" : "var(--review)"}" stroke-width="3"/>
     <circle cx="50" cy="50" r="37" fill="none" stroke="${ok ? "var(--verified)" : "var(--review)"}" stroke-width="1" stroke-dasharray="2 3"/>
-    <text x="50" y="44" text-anchor="middle" font-family="Inter Tight, sans-serif" font-size="8.5" font-weight="700" letter-spacing="1.6" fill="${ok ? "var(--verified)" : "var(--review)"}">ASSAYWELL</text>
-    <text x="50" y="60" text-anchor="middle" font-family="Newsreader, serif" font-size="${ok ? 14 : 9.2}" font-weight="700" fill="${ok ? "var(--verified)" : "var(--review)"}">${ok ? "VERIFIED" : "NEEDS REVIEW"}</text>
+    <text x="50" y="55" text-anchor="middle" font-family="Newsreader, serif" font-size="${ok ? 14 : 9.2}" font-weight="700" fill="${ok ? "var(--verified)" : "var(--review)"}">${ok ? "VERIFIED" : "NEEDS REVIEW"}</text>
     <path d="M30 68h40" stroke="${ok ? "var(--verified)" : "var(--review)"}" stroke-width="1.5"/></svg>`;
 
   // ------------------------------------------------------------------ data
@@ -75,7 +74,7 @@
     document.body.innerHTML = `
       <a class="sr" href="#main">Skip to content</a>
       <header class="topbar"><div class="row">
-        <a class="brand" href="./" aria-label="Assaywell Research home">${LOGO}<span><b>Assaywell</b><small>Research desk</small></span></a>
+        <a class="brand" href="./" aria-label="Verified Bank Research home">${LOGO}<span><b>Verified Bank Research</b><small>Research desk</small></span></a>
         <nav class="tabs" role="tablist" aria-label="Sections">
           ${[["desk", "Desk"], ["compose", "Compose"], ["notes", "Notes"], ["ask", "Ask the desk"], ["data", "Data"]].map(([k, l]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="false">${l}</button>`).join("")}
         </nav>

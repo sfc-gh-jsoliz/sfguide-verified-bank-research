@@ -1,4 +1,4 @@
-"""Assaywell Research: Verified Bank Research (Streamlit app).
+"""Verified Bank Research (Streamlit app).
 
 Live mode runs on Snowflake (Streamlit in Snowflake, or locally with key-pair auth through
 SNOWFLAKE_ACCOUNT / SNOWFLAKE_USER / SNOWFLAKE_PRIVATE_KEY_PATH). Sample mode replays the
@@ -19,7 +19,7 @@ import streamlit as st
 
 import research as R
 
-st.set_page_config(page_title="Assaywell Research · Verified Bank Research", page_icon="✔", layout="wide")
+st.set_page_config(page_title="Verified Bank Research", page_icon="✔", layout="wide")
 HERE = pathlib.Path(__file__).parent
 SAMPLE_DIR = HERE / "sample"
 REPO = "https://github.com/sfc-gh-jsoliz/sfguide-verified-bank-research"
@@ -88,7 +88,7 @@ if "mode" not in st.session_state:
     st.session_state.mode = "Live" if session is not None else "Sample"
 
 LIVE = st.session_state.mode == "Live"
-st.markdown(f"""<div class="aw-bar">{LOGO}<div><b>Assaywell</b><br><small>Research desk</small></div>
+st.markdown(f"""<div class="aw-bar">{LOGO}<div><b>Verified Bank Research</b><br><small>Research desk</small></div>
 <span class="aw-env {'live' if LIVE else 'sample'}">{'LIVE · Snowflake' if LIVE else 'SAMPLE data'}</span>
 <span class="aw-role">Bank research analyst</span></div>""", unsafe_allow_html=True)
 st.radio("Data mode", ["Sample", "Live"], key="mode", horizontal=True, label_visibility="collapsed")
