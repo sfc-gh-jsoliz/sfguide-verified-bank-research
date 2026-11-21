@@ -1,0 +1,7 @@
+name: verified_bank_research
+channels:
+  - snowflake
+dependencies:
+  - altair
+  - pandas
+  - snowflake-snowpark-python

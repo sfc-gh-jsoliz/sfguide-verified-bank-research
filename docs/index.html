@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Verified Bank Research · A Snow Pack</title>
+  <meta name="description" content="Bank research notes where every figure is traced to governed call-report data, and a Cortex AI verifier rejects any unsupported claim before the note is published. Synthetic data, runs on Snowflake.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2.5 27 6.5v8.6c0 7.1-4.6 12.2-11 14.4C9.6 27.3 5 22.2 5 15.1V6.5Z' fill='%23D9AE55' stroke='%2316181D' stroke-width='1.6'/%3E%3Cpath d='m10.6 15.6 3.8 3.8 7.2-8' fill='none' stroke='%2316181D' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="landing.css">
+</head>
+<body>
+<header class="bar"><div class="wrap row">
+  <a class="brand" href="./"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2.5 27 6.5v8.6c0 7.1-4.6 12.2-11 14.4C9.6 27.3 5 22.2 5 15.1V6.5Z" fill="#D9AE55" stroke="#16181D" stroke-width="1.6"/><path d="m10.6 15.6 3.8 3.8 7.2-8" fill="none" stroke="#16181D" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 23.4h10" stroke="#16181D" stroke-width="1.6" stroke-linecap="round"/></svg><span>Verified Bank Research</span></a>
+  <nav aria-label="Page"><a href="#how">How it works</a><a href="#screens">Screens</a><a href="#run">Run it</a><a href="https://github.com/sfc-gh-jsoliz/sfguide-verified-bank-research">Repository</a></nav>
+</div></header>
+
+<main>
+<section class="hero"><div class="wrap hero-grid">
+  <div>
+    <p class="eyebrow">Snow Pack · Banking · Research</p>
+    <h1>An AI research note is only useful if every number in it can be checked.</h1>
+    <p class="lede">A bank research desk wants AI drafts of peer notes on scale, profitability and capital, but it can't publish a figure nobody can source. In this pack Cortex AI writes the note using only a governed fact pack from call-report data. A second Cortex call then checks every claim, and each figure is traced to its source row. Only a note that passes gets the hallmark.</p>
+    <div class="cta"><a class="btn primary" href="try/">Try it, no account needed</a><a class="btn" href="https://github.com/sfc-gh-jsoliz/sfguide-verified-bank-research">View the repository</a></div>
+    <ul class="facts">
+      <li><b>About 20 s</b> per verified note in Live mode (two AI_COMPLETE calls)</li>
+      <li><b>About 15 s</b> setup, one worksheet, XSMALL warehouse</li>
+      <li><b>Synthetic data</b>: 12 fictional banks, 8 quarters, seeded generator</li>
+    </ul>
+  </div>
+  <figure class="hero-shot">
+    <img src="images/03-note-verified.jpg" alt="A verified peer note for Ombrel National Bank with a green VERIFIED hallmark, a peer comparison table, and an assay margin listing the source row of each numbered figure" width="1600" height="1000">
+    <figcaption>A note after verification. Each figure has a number that ties it to a row of <code>BANK_QUARTERLY_METRICS</code> in the margin. Drafted and checked by <b>Cortex AI_COMPLETE</b>.</figcaption>
+  </figure>
+</div></section>
+
+<section class="band" id="how"><div class="wrap">
+  <h2>How a note earns its hallmark</h2>
+  <ol class="flow">
+    <li><span class="n">01</span><h3>Fact pack</h3><p>SQL over <code>BANK_QUARTERLY_METRICS</code> selects the subject and peers for the quarter and a year earlier. It precomputes display strings, year-over-year changes and size ranks, so the model has nothing to calculate.</p><span class="cap">Snowflake SQL</span></li>
+    <li><span class="n">02</span><h3>Grounded draft</h3><p>The model writes the note under DATA RULES: copy figures verbatim, no estimates, no hedging, no real company names.</p><span class="cap">Cortex AI_COMPLETE</span></li>
+    <li><span class="n">03</span><h3>Verifier</h3><p>A second call returns a checked claim list as structured output: claim, reason and verdict. One unsupported or hedged claim marks the note Needs review.</p><span class="cap">AI_COMPLETE structured output</span></li>
+    <li><span class="n">04</span><h3>Trace and store</h3><p>A deterministic matcher ties every $ and % figure to its source row. The note, fact pack and findings are stored in <code>REPORTS</code>.</p><span class="cap">Snowflake table</span></li>
+    <li><span class="n">05</span><h3>Ask the desk</h3><p>A Cortex Agent answers follow-up questions with SQL that Cortex Analyst writes over a semantic view.</p><span class="cap">Cortex Agents · Cortex Analyst · Semantic Views</span></li>
+  </ol>
+</div></section>
+
+<section class="band alt" id="screens"><div class="wrap">
+  <h2>What you get</h2>
+  <div class="shots">
+    <figure class="wide"><img loading="lazy" src="images/01-desk.jpg" alt="Research desk dashboard: four KPI tiles (assets under coverage, median ROA, clean drafts verified, planted claims caught), a return-on-assets chart for the Regional peer group with a dotted peer median, a watchlist panel flagging three banks, and the coverage table" width="1600" height="1000"><figcaption><b>Desk.</b> Coverage KPIs, an 8-quarter ROA chart by peer group, and watchlist signals from the <code>WATCHLIST_SIGNALS</code> view (Snowflake SQL).</figcaption></figure>
+    <figure><img loading="lazy" src="images/02-compose.jpg" alt="Compose screen: subject bank, peer chips and the planted-claim toggle on the left; the five pipeline steps ticked off with live timings; the note streaming in on the right" width="1600" height="1000"><figcaption><b>Compose.</b> Staged pipeline steps with their live timings while <b>Cortex AI_COMPLETE</b> drafts and checks the note.</figcaption></figure>
+    <figure><img loading="lazy" src="images/04-note-review.jpg" alt="A test draft marked NEEDS REVIEW: the planted ROE forecast is struck through in rust, its 18.5% figure is flagged as not in the fact pack, and the verifier findings list it as HEDGED" width="1600" height="1000"><figcaption><b>Caught.</b> The verifier rejects a planted hedged forecast (<b>AI_COMPLETE structured output</b>), and the margin shows its figure isn't in the fact pack.</figcaption></figure>
+    <figure><img loading="lazy" src="images/05-notes.jpg" alt="Notes library table with status pills, test-draft tags, claims checked, rejected claims, figures traced and run time, filtered by status" width="1600" height="1000"><figcaption><b>Notes library.</b> Every note in the <code>REPORTS</code> table, with sort, status filter and test-draft toggle.</figcaption></figure>
+    <figure><img loading="lazy" src="images/06-ask.jpg" alt="Ask the desk: the agent ranks the Regional peer group by return on assets, with the returned rows and the SQL Cortex Analyst generated" width="1600" height="1000"><figcaption><b>Ask the desk.</b> A <b>Cortex Agent</b> answers with figures from SQL that <b>Cortex Analyst</b> generated over the <b>semantic view</b>.</figcaption></figure>
+    <figure><img loading="lazy" src="images/07-bank.jpg" alt="Bank profile drawer for Kestrova Bank: six metric cards with 8-quarter sparklines and a deposit runoff watchlist signal" width="1600" height="1000"><figcaption><b>Bank profile.</b> Eight-quarter trends and the watchlist rules that fire for one bank (Snowflake SQL).</figcaption></figure>
+  </div>
+</div></section>
+
+<section class="band" id="run"><div class="wrap two">
+  <div class="card">
+    <h2>Run it in your account</h2>
+    <ol>
+      <li>Run <code>app/setup_synthetic.sql</code> in one worksheet. Part 1 needs ACCOUNTADMIN; the rest runs as the least-privilege role <code>SNOWPACK_BANK_RESEARCH_ROLE</code>.</li>
+      <li>Deploy <code>app/streamlit_app.py</code> as Streamlit in Snowflake, or run it locally with key-pair auth.</li>
+      <li>Switch the header to <b>Live</b> and compose a note.</li>
+      <li>When you're done, run <code>app/teardown.sql</code>.</li>
+    </ol>
+    <p>Real US call-report data: mount the free Financial Data Package listing from Snowflake Marketplace and run <code>app/setup.sql</code> instead.</p>
+  </div>
+  <div class="card">
+    <h2>Requirements and cost</h2>
+    <ul>
+      <li>A Snowflake account in a region with Cortex AI, Cortex Analyst and Cortex Agents, and the <code>claude-sonnet-4-5</code> model (or change <code>MODEL</code>).</li>
+      <li>Setup took about 15 s on XSMALL, well under 0.1 warehouse credits.</li>
+      <li>Each note makes two AI_COMPLETE calls (about 6 s to draft, 11 to 17 s to verify, measured). Agent questions took 13 to 27 s.</li>
+      <li>Cortex AI token charges apply per note and per question; check your account's pricing.</li>
+    </ul>
+    <p class="docs">Docs: <a href="https://docs.snowflake.com/en/sql-reference/functions/ai_complete">AI_COMPLETE</a> · <a href="https://docs.snowflake.com/en/sql-reference/functions/ai_complete-structured-outputs">Structured outputs</a> · <a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents">Cortex Agents</a> · <a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-analyst">Cortex Analyst</a> · <a href="https://docs.snowflake.com/en/user-guide/views-semantic/overview">Semantic views</a> · <a href="https://docs.snowflake.com/en/developer-guide/streamlit/about-streamlit">Streamlit in Snowflake</a></p>
+  </div>
+</div></section>
+
+<section class="disclaimer"><div class="wrap">
+  <p><b>Disclaimer.</b> Synthetic data and fictional banks only; any resemblance to a real institution is unintended. The logic is illustrative and isn't investment, credit or regulatory advice. Verification results ("Verified", claims caught) hold on this synthetic data set only. This is an example provided as-is, not an official Snowflake product, and not supported by Snowflake Support.</p>
+</div></section>
+</main>
+
+<footer class="foot"><div class="wrap">
+  <p><b>Verified Bank Research</b> · Owner: Javier Soliz · Last reviewed: November 2026 · Apache 2.0</p>
+  <p><a href="try/">Try it</a> · <a href="https://github.com/sfc-gh-jsoliz/sfguide-verified-bank-research">Repository</a> · <a href="https://sfc-gh-ooral.github.io/snow-packs/">Snow Packs catalog</a></p>
+</div></footer>
+</body>
+</html>

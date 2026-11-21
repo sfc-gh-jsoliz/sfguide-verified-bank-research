@@ -1,96 +1,154 @@
 -- ============================================================================
--- HOL-01 — setup_synthetic.sql  (TRY mode: NO Marketplace listing required)
+-- Verified Bank Research — setup_synthetic.sql  (no Marketplace listing needed)
 -- ----------------------------------------------------------------------------
--- Stands up the SAME app/agent as setup.sql, but on SYNTHETIC data generated
--- in-account — so anyone can try it without mounting any Marketplace listing.
+-- Builds the whole pack on SYNTHETIC data generated in your account:
+-- 12 fictional banks x 8 quarters, generated deterministically (fixed seed
+-- constants, no RANDOM), so every run produces identical numbers.
+-- The planted stories are documented in data/README.md.
 --
--- >>> REAL DATA IS AVAILABLE. <<<
--- This is sample data with FICTIONAL banks. For real US bank call-report data,
--- mount the FREE "Financial Data Package" (SNOWFLAKE_PUBLIC_DATA_FINANCIAL_PACKAGE)
--- listing from the Snowflake Marketplace and run setup.sql instead — the app,
--- semantic view, and agent all work unchanged against the real data.
+-- Real data is available too: for real US bank call-report data, mount the free
+-- "Financial Data Package" (SNOWFLAKE_PUBLIC_DATA_FINANCIAL_PACKAGE) listing and
+-- run setup.sql instead. Run ONE of {setup.sql, setup_synthetic.sql}.
 --
--- Creates the same objects as setup.sql in SNOWPACK_BANK_RESEARCH.CORE:
---   BANK_QUARTERLY_METRICS (here: a TABLE of synthetic rows, not a view),
---   DATA_SOURCE_INFO (mode = 'synthetic'), BANK_RESEARCH_SV, REPORTS, agent.
--- Run ONE of {setup.sql, setup_synthetic.sql}, not both.
+-- Run top to bottom in one worksheet. Part 1 needs ACCOUNTADMIN (or a role that
+-- can create roles, databases and warehouses); everything after it runs as the
+-- least-privilege pack role SNOWPACK_BANK_RESEARCH_ROLE.
+-- Cost: well under 0.1 warehouse credits on XSMALL; Cortex AI tokens are only
+-- spent when you generate notes or ask the agent.
 -- ============================================================================
 
--- Dedicated, isolated environment for this Snow Pack.
+-- ---------------------------------------------------------------------------
+-- 1. Role, database and warehouse (ACCOUNTADMIN)
+-- ---------------------------------------------------------------------------
+USE ROLE ACCOUNTADMIN;
+CREATE ROLE IF NOT EXISTS SNOWPACK_BANK_RESEARCH_ROLE
+  COMMENT = 'Least-privilege role for the Verified Bank Research Snow Pack';
+SET MY_USER = CURRENT_USER();
+GRANT ROLE SNOWPACK_BANK_RESEARCH_ROLE TO USER IDENTIFIER($MY_USER);
+
 CREATE DATABASE IF NOT EXISTS SNOWPACK_BANK_RESEARCH;
-CREATE SCHEMA IF NOT EXISTS SNOWPACK_BANK_RESEARCH.CORE;
-CREATE WAREHOUSE IF NOT EXISTS SNOWPACK_BANK_RESEARCH_WH WITH WAREHOUSE_SIZE='XSMALL' AUTO_SUSPEND=60 AUTO_RESUME=TRUE INITIALLY_SUSPENDED=TRUE;
+CREATE WAREHOUSE IF NOT EXISTS SNOWPACK_BANK_RESEARCH_WH
+  WITH WAREHOUSE_SIZE = 'XSMALL' AUTO_SUSPEND = 60 AUTO_RESUME = TRUE INITIALLY_SUSPENDED = TRUE;
+GRANT OWNERSHIP ON DATABASE SNOWPACK_BANK_RESEARCH TO ROLE SNOWPACK_BANK_RESEARCH_ROLE COPY CURRENT GRANTS;
+GRANT OWNERSHIP ON WAREHOUSE SNOWPACK_BANK_RESEARCH_WH TO ROLE SNOWPACK_BANK_RESEARCH_ROLE COPY CURRENT GRANTS;
+-- Cortex AI functions, Cortex Analyst and Cortex Agents
+GRANT DATABASE ROLE SNOWFLAKE.CORTEX_USER TO ROLE SNOWPACK_BANK_RESEARCH_ROLE;
+
+-- ---------------------------------------------------------------------------
+-- 2. Everything else runs as the pack role
+-- ---------------------------------------------------------------------------
+USE ROLE SNOWPACK_BANK_RESEARCH_ROLE;
 USE WAREHOUSE SNOWPACK_BANK_RESEARCH_WH;
+CREATE SCHEMA IF NOT EXISTS SNOWPACK_BANK_RESEARCH.CORE;
 USE SCHEMA SNOWPACK_BANK_RESEARCH.CORE;
 
--- 1. Synthetic fact table (fictional banks; deterministic, no RANDOM) -----------
+-- 2a. Banks and peer groups (coined, fictional names) -------------------------
+CREATE OR REPLACE TABLE BANKS (
+  ID_RSSD NUMBER, BANK_NAME STRING, CITY STRING, STATE STRING,
+  FEDERAL_REGULATOR STRING, PEER_GROUP STRING, BASE_ASSETS NUMBER(38,0),
+  BASE_DEP_RATIO FLOAT, BASE_ROA FLOAT, BASE_EQTA FLOAT
+) COMMENT = 'SYNTHETIC fictional banks with their peer group';
+
+INSERT INTO BANKS VALUES
+  (90001,'Corvale National Bank, N.A.','New York','NY','OCC','Large',3180000000000,0.74,0.0118,0.094),
+  (90002,'Halvern Bank & Trust','Boston','MA','FRS','Large',2060000000000,0.71,0.0142,0.098),
+  (90003,'Brindlemoor Bank','Seattle','WA','OCC','Large',1430000000000,0.76,0.0101,0.101),
+  (90004,'Quillmere Savings Bank','Chicago','IL','FDIC','Large',870000000000,0.79,0.0094,0.104),
+  (90005,'Tarrowind Commercial Bank','Charlotte','NC','FRS','Regional',405000000000,0.77,0.0112,0.106),
+  (90006,'Vessick Federal Savings','Columbus','OH','OCC','Regional',248000000000,0.80,0.0098,0.109),
+  (90007,'Ombrel National Bank','Phoenix','AZ','OCC','Regional',152000000000,0.75,0.0130,0.102),
+  (90008,'Kestrova Bank','San Diego','CA','FDIC','Regional',66000000000,0.78,0.0105,0.099),
+  (90009,'Sallowmere Trust Company','Milwaukee','WI','FRS','Community',30500000000,0.82,0.0109,0.112),
+  (90010,'Pellandry Community Bank','Denver','CO','FDIC','Community',12400000000,0.84,0.0096,0.071),
+  (90011,'Morvantis Bank','Pittsburgh','PA','FDIC','Community',5300000000,0.83,0.0103,0.108),
+  (90012,'Yarrowdel Savings Bank','Memphis','TN','FDIC','Community',2250000000,0.85,0.0091,0.115);
+
+-- 2b. Deterministic quarterly metrics -----------------------------------------
+-- N(k) is a fixed pseudo-noise in [-0.5, 0.5) from the bank id, the quarter
+-- index and a per-metric seed constant (seed set 7919/104729/1299709).
+-- q_ago = 0 is the latest quarter (2026-06-30), 7 is 2024-09-30.
 CREATE OR REPLACE TABLE BANK_QUARTERLY_METRICS
-  COMMENT = 'SYNTHETIC sample data (fictional banks). Real FFIEC/FDIC data is available free on the Snowflake Marketplace — run setup.sql to switch.'
+  COMMENT = 'SYNTHETIC sample data (fictional banks), deterministic. Real FFIEC/FDIC data is available free on the Snowflake Marketplace: run setup.sql to switch.'
 AS
-WITH banks AS (
-  SELECT * FROM VALUES
-    (90001,'Summit National Bank','New York','NY','OCC',3200000000000),
-    (90002,'Harbor Point Bank, N.A.','Boston','MA','OCC',2100000000000),
-    (90003,'Cascade Trust Company','Seattle','WA','FRS',1450000000000),
-    (90004,'Meridian Commercial Bank','Chicago','IL','FDIC',880000000000),
-    (90005,'Granite State Bank & Trust','Manchester','NH','FDIC',420000000000),
-    (90006,'Blue Ridge National Bank','Charlotte','NC','OCC',260000000000),
-    (90007,'Pacifica Bank','San Francisco','CA','FRS',155000000000),
-    (90008,'Sunbelt Community Bank','Phoenix','AZ','FDIC',68000000000),
-    (90009,'Lakeshore Federal Savings','Milwaukee','WI','OCC',31000000000),
-    (90010,'Ironwood Savings Bank','Denver','CO','FDIC',12500000000),
-    (90011,'Keystone Union Bank','Pittsburgh','PA','FDIC',5400000000),
-    (90012,'Delta Regional Bank','Memphis','TN','FDIC',2300000000)
-    AS b(id_rssd, bank_name, city, state, federal_regulator, base_assets)
-),
-quarters AS (
-  SELECT DATEADD(quarter, -SEQ4(), '2026-06-30'::date) AS quarter_end
+WITH q AS (
+  SELECT SEQ4() AS q_ago, DATEADD(quarter, -SEQ4(), '2026-06-30'::DATE) AS quarter_end
   FROM TABLE(GENERATOR(ROWCOUNT => 8))
 ),
-grid AS (
-  SELECT b.*, q.quarter_end,
-         DATEDIFF(quarter, q.quarter_end, '2026-06-30') AS q_ago   -- 0 = latest
-  FROM banks b CROSS JOIN quarters q
+g AS (
+  SELECT b.*, q.q_ago, LAST_DAY(q.quarter_end) AS quarter_end,
+         MOD(b.id_rssd * 7919 + q.q_ago * 104729 + 1299709, 1000) / 1000.0 - 0.5 AS n1,
+         MOD(b.id_rssd * 104729 + q.q_ago * 7919 + 15485863, 1000) / 1000.0 - 0.5 AS n2,
+         MOD(b.id_rssd * 1299709 + q.q_ago * 15485863 + 7919, 1000) / 1000.0 - 0.5 AS n3
+  FROM BANKS b CROSS JOIN q
 ),
-calc AS (
-  SELECT
-    id_rssd, bank_name, city, state, federal_regulator, quarter_end,
-    -- mild deterministic growth back through time, + per-bank variation
-    ROUND(base_assets * (1 - 0.012 * q_ago) * (1 + 0.004 * (id_rssd % 7)), 0) AS total_assets,
-    0.006 + 0.0009 * (id_rssd % 9) - 0.0003 * q_ago                            AS roa_frac
-  FROM grid
+c AS (
+  SELECT g.*,
+    ROUND(base_assets * (1 - 0.011 * q_ago) * (1 + 0.006 * n1), -6) AS assets,
+    -- Story 1: Kestrova deposit runoff (deposits/assets 0.78 -> 0.64)
+    CASE WHEN id_rssd = 90008 THEN base_dep_ratio - 0.02 * (7 - q_ago)
+         ELSE base_dep_ratio + 0.01 * n2 END AS dep_ratio,
+    -- Story 2: Ombrel ROA compression, with a loss in 2025-12-31 (q_ago = 2)
+    CASE WHEN id_rssd = 90007 AND q_ago = 2 THEN -0.0021
+         WHEN id_rssd = 90007 THEN base_roa - 0.0012 * (7 - q_ago)
+         ELSE base_roa + 0.0008 * n3 - 0.00012 * (7 - q_ago) END AS roa,
+    -- Story 3: Pellandry thin capital (base 7.1%, others ~10%)
+    base_eqta + 0.002 * n1 AS eqta
+  FROM g
 )
 SELECT
-  id_rssd,
-  bank_name,
-  city,
-  state,
-  federal_regulator,
-  'Commercial Bank'                         AS category,
-  TRUE                                      AS is_active,
+  id_rssd, bank_name, city, state, federal_regulator, peer_group,
+  'Commercial Bank'                              AS category,
+  TRUE                                           AS is_active,
   quarter_end,
-  total_assets                              AS total_assets,
-  ROUND(total_assets * 0.72, 0)             AS total_deposits,
-  ROUND(total_assets * roa_frac / 4.0, 0)   AS net_income_qtr,
-  ROUND(roa_frac, 6)                        AS return_on_assets,
-  ROUND(roa_frac / 0.10, 6)                 AS return_on_equity,       -- equity ~10% of assets
-  ROUND(total_assets * 0.10, 0)             AS total_equity_capital,
-  0.10                                      AS equity_to_assets,
-  ROUND(total_assets * 0.12, 0)             AS ci_loans,
-  ROUND(total_assets * 0.03, 0)             AS credit_card_loans,
-  ROUND(total_assets * 0.25, 0)             AS re_loans_domestic
-FROM calc;
+  assets                                         AS total_assets,
+  ROUND(assets * dep_ratio, -6)                  AS total_deposits,
+  ROUND(assets * roa / 4.0, -5)                  AS net_income_qtr,
+  ROUND(roa, 6)                                  AS return_on_assets,
+  ROUND(roa / eqta, 6)                           AS return_on_equity,
+  ROUND(assets * eqta, -6)                       AS total_equity_capital,
+  ROUND(eqta, 6)                                 AS equity_to_assets,
+  ROUND(assets * (0.11 + 0.02 * n2), -6)         AS ci_loans,
+  ROUND(assets * (0.03 + 0.01 * n3), -6)         AS credit_card_loans,
+  ROUND(assets * (0.24 + 0.03 * n1), -6)         AS re_loans_domestic
+FROM c;
 
--- 2. Data-source marker (the app reads this to show the right banner) ----------
+-- 2b'. Watchlist rules (the Desk shows these; thresholds are illustrative) -----
+CREATE OR REPLACE VIEW WATCHLIST_SIGNALS AS
+WITH m AS (
+  SELECT id_rssd, bank_name, quarter_end, total_assets, total_deposits, return_on_assets, equity_to_assets,
+         MAX(quarter_end) OVER () AS latest
+  FROM BANK_QUARTERLY_METRICS
+), now_ago AS (
+  SELECT n.id_rssd, n.bank_name,
+         n.total_deposits / n.total_assets AS dep_now, a.total_deposits / a.total_assets AS dep_ago,
+         n.return_on_assets AS roa_now, a.return_on_assets AS roa_ago, n.equity_to_assets AS eqta_now
+  FROM m n JOIN m a ON a.id_rssd = n.id_rssd AND a.quarter_end = DATEADD(year, -1, n.latest)
+  WHERE n.quarter_end = n.latest
+)
+SELECT id_rssd, bank_name, 'Deposit runoff' AS signal,
+       'Deposits/assets ' || TO_CHAR(dep_ago * 100, 'FM90.0') || '% -> ' || TO_CHAR(dep_now * 100, 'FM90.0') || '% in a year' AS detail
+FROM now_ago WHERE dep_ago - dep_now > 0.06
+UNION ALL
+SELECT m.id_rssd, m.bank_name, 'Quarterly loss',
+       'ROA ' || TO_CHAR(m.return_on_assets * 100, 'FM90.00') || '% in quarter ending ' || m.quarter_end::STRING
+FROM m WHERE m.return_on_assets < 0
+UNION ALL
+SELECT id_rssd, bank_name, 'ROA compression', 'ROA ' || TO_CHAR((roa_now - roa_ago) * 100, 'FMS0.00') || ' pp year over year'
+FROM now_ago WHERE (roa_now - roa_ago) * 100 < -0.3
+UNION ALL
+SELECT id_rssd, bank_name, 'Thin capital', 'Equity/assets ' || TO_CHAR(eqta_now * 100, 'FM90.00') || '% (below 8.00%)'
+FROM now_ago WHERE eqta_now < 0.08;
+
+-- 2c. Data-source marker (the app reads this to show the right badge) ----------
 CREATE OR REPLACE VIEW DATA_SOURCE_INFO AS
 SELECT 'synthetic' AS mode,
-       'Synthetic sample data (fictional banks), no Marketplace listing required. Real US bank call-report data is available FREE on the Snowflake Marketplace (Financial Data Package / SNOWFLAKE_PUBLIC_DATA_FINANCIAL_PACKAGE). Run setup.sql to switch this app to real data.' AS note;
+       'Synthetic sample data (fictional banks). Real US bank call-report data is available free on the Snowflake Marketplace (Financial Data Package); run setup.sql to switch.' AS note;
 
--- 3. Semantic view (identical to setup.sql) ------------------------------------
+-- 2d. Semantic view for Cortex Analyst -----------------------------------------
 CREATE OR REPLACE SEMANTIC VIEW BANK_RESEARCH_SV
   TABLES ( banks AS SNOWPACK_BANK_RESEARCH.CORE.BANK_QUARTERLY_METRICS PRIMARY KEY (ID_RSSD, QUARTER_END)
            WITH SYNONYMS = ('banks','financial institutions','depository institutions')
-           COMMENT = 'Quarterly call-report metrics per US bank (SYNTHETIC sample data)' )
+           COMMENT = 'Quarterly call-report metrics per bank (SYNTHETIC sample data)' )
   FACTS (
     banks.total_assets AS TOTAL_ASSETS, banks.total_deposits AS TOTAL_DEPOSITS,
     banks.net_income AS NET_INCOME_QTR, banks.return_on_assets AS RETURN_ON_ASSETS,
@@ -99,6 +157,7 @@ CREATE OR REPLACE SEMANTIC VIEW BANK_RESEARCH_SV
   )
   DIMENSIONS (
     banks.bank_name AS BANK_NAME WITH SYNONYMS = ('bank','institution','institution name') COMMENT = 'Legal name of the bank',
+    banks.peer_group AS PEER_GROUP WITH SYNONYMS = ('peer group','size tier','tier') COMMENT = 'Large, Regional or Community',
     banks.state AS STATE WITH SYNONYMS = ('headquarters state'),
     banks.city AS CITY,
     banks.federal_regulator AS FEDERAL_REGULATOR WITH SYNONYMS = ('regulator','primary regulator'),
@@ -111,21 +170,36 @@ CREATE OR REPLACE SEMANTIC VIEW BANK_RESEARCH_SV
     banks.net_income_qtr_usd AS SUM(banks.net_income) COMMENT = 'Quarterly net income in USD',
     banks.avg_return_on_assets AS AVG(banks.return_on_assets) COMMENT = 'Average ROA (fraction; 0.015 = 1.5 percent)',
     banks.avg_return_on_equity AS AVG(banks.return_on_equity) COMMENT = 'Average ROE (fraction)',
+    banks.avg_equity_to_assets AS AVG(banks.equity_to_assets) COMMENT = 'Average equity to assets (fraction)',
     banks.bank_count AS COUNT(DISTINCT banks.id_rssd) COMMENT = 'Number of distinct banks'
   )
   COMMENT = 'Verified bank research semantic view (SYNTHETIC sample data).';
 
--- 4. Output table + agent (identical to setup.sql) -----------------------------
+-- 2e. Research notes written by the app ----------------------------------------
 CREATE TABLE IF NOT EXISTS REPORTS (
-  run_id          STRING      DEFAULT UUID_STRING(),
-  subject         STRING, draft_md STRING, report_md STRING,
-  status          STRING, edits_applied INT, residual_hedges INT,
-  created_at      TIMESTAMP_LTZ DEFAULT CURRENT_TIMESTAMP()
+  run_id          STRING DEFAULT UUID_STRING(),
+  subject         STRING,
+  peers           ARRAY,
+  quarter_end     DATE,
+  injected_claim  BOOLEAN,
+  fact_pack       VARIANT,
+  draft_md        STRING,
+  report_md       STRING,
+  status          STRING,       -- 'verified' | 'needs_review'
+  claims_checked  INT,          -- claims the verifier checked
+  edits_applied   INT,          -- number of claims the verifier rejected
+  residual_hedges INT,
+  findings        VARIANT,      -- verifier output: [{claim, verdict, reason}]
+  model           STRING,
+  draft_ms        INT,
+  verify_ms       INT,
+  created_at      TIMESTAMP_NTZ DEFAULT SYSDATE()
 );
 
+-- 2f. Conversational Cortex Agent over the semantic view ------------------------
 CREATE OR REPLACE AGENT BANK_RESEARCH_AGENT
-  COMMENT = 'HOL-01 verified bank research agent (synthetic sample data)'
-  PROFILE = '{"display_name": "Bank Research Agent", "color": "blue"}'
+  COMMENT = 'Verified bank research agent (Cortex Analyst over BANK_RESEARCH_SV, synthetic data)'
+  PROFILE = '{"display_name": "Bank Research Agent", "color": "orange"}'
   FROM SPECIFICATION
   $$
   models:
@@ -134,20 +208,26 @@ CREATE OR REPLACE AGENT BANK_RESEARCH_AGENT
     capabilities:
       analytical_search: true
   instructions:
-    response: 'You are a buy-side bank analyst. Use ONLY figures returned by the Analyst tool; never invent numbers. ROA/ROE/equity ratios are fractions (0.015 = 1.5%). Express dollars in $B/$T. Be concise and cite the quarter. Note: this instance may be running on synthetic sample data.'
+    response: 'You are a bank research analyst. Use ONLY figures returned by the Analyst tool; never invent numbers. ROA/ROE/equity ratios are fractions (0.015 = 1.5%). Express dollars in $B. Be concise, cite the quarter, and say the data is synthetic sample data.'
     orchestration: 'For any bank metric, ranking, or comparison, use the BankMetrics Analyst tool.'
     sample_questions:
-      - question: 'Top 5 banks by total assets in 2026'
+      - question: 'Rank the Regional peer group by return on assets for 2026-06-30'
   tools:
     - tool_spec:
         type: cortex_analyst_text_to_sql
         name: BankMetrics
-        description: 'Quarterly call-report metrics (assets, deposits, net income, ROA, ROE, capital, loans) per US bank.'
+        description: 'Quarterly call-report metrics (assets, deposits, net income, ROA, ROE, capital, loans) per bank, with a peer group.'
   tool_resources:
     BankMetrics:
       semantic_view: SNOWPACK_BANK_RESEARCH.CORE.BANK_RESEARCH_SV
+      execution_environment:
+        type: warehouse
+        warehouse: SNOWPACK_BANK_RESEARCH_WH
   $$;
 
--- Smoke test:
--- SELECT bank_name, quarter_end, total_assets, return_on_assets
--- FROM BANK_QUARTERLY_METRICS WHERE quarter_end='2026-06-30' ORDER BY total_assets DESC;
+-- 2g. Stage for the Streamlit in Snowflake app (see README, step 2) ------------
+CREATE STAGE IF NOT EXISTS APP_STAGE DIRECTORY = (ENABLE = TRUE)
+  COMMENT = 'Upload app/streamlit_app.py, app/research.py and app/environment.yml here';
+
+SELECT bank_name, peer_group, quarter_end, total_assets, return_on_assets, equity_to_assets
+FROM BANK_QUARTERLY_METRICS WHERE quarter_end = '2026-06-30' ORDER BY total_assets DESC;
