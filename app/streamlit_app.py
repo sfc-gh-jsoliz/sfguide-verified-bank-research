@@ -55,6 +55,7 @@ mark.cite.miss {{ border-bottom-color:var(--review); background:rgba(156,63,11,.
 mark.cite.miss sup {{ color:var(--review); }}
 .finding {{ border:1px solid rgba(156,63,11,.4); background:rgba(156,63,11,.07); border-radius:8px; padding:8px 10px; margin:6px 0; font-size:13px; }}
 .srcrow {{ font:11px ui-monospace, monospace; color:var(--muted); }}
+[data-testid="stMarkdownContainer"] table {{ display:block; overflow-x:auto; max-width:100%; }}
 [data-testid="stMetric"] {{ background:#fff; border:1px solid #D3D1C8; border-radius:10px; padding:12px 14px; }}
 [data-testid="stMetricValue"] {{ font-family: Newsreader, Georgia, serif; }}
 </style>""", unsafe_allow_html=True)
@@ -192,7 +193,9 @@ def note_html(note):
         src = f'{c["source"]["bank"]} · {c["source"]["quarter"]} · {c["source"]["column"]}' if c.get("source") else "No matching figure in the fact pack"
         return f'<mark class="cite{"" if c["matched"] else " miss"}" title="{html.escape(src)}">{m.group(0)}<sup>{n}</sup></mark>'
 
-    return R._FIG.sub(sub, note["report_md"]), cites
+    md = re.sub(r"^## ", "#### ", note["report_md"], flags=re.M)
+    md = re.sub(r"^# ", "### ", md, flags=re.M)
+    return R._FIG.sub(sub, md), cites
 
 
 def show_note(note, sample):
@@ -200,8 +203,9 @@ def show_note(note, sample):
     matched = sum(1 for c in cites if c["matched"])
     st.markdown(
         f'{status_pill(note["status"])} &nbsp; <span style="color:{MUTED}">{note.get("claims_checked") or 0} claims checked · '
-        f'{len(note["findings"])} rejected · {matched}/{len(cites)} figures traced · draft {note["draft_ms"]/1000:.1f} s · '
-        f'verify {note["verify_ms"]/1000:.1f} s</span>'
+        f'{len(note["findings"])} rejected · {matched}/{len(cites)} figures traced'
+        + (f' · draft {note["draft_ms"]/1000:.1f} s · verify {note["verify_ms"]/1000:.1f} s' if note.get("draft_ms") else "")
+        + '</span>'
         + (' &nbsp; <span class="pill ai">✦ Sample AI response</span>' if sample else ""), unsafe_allow_html=True)
     left, right = st.columns([2.2, 1], gap="medium")
     with left:
@@ -278,14 +282,18 @@ with tab_desk:
         grp = st.radio("Peer group", ["Large", "Regional", "Community"], index=1, horizontal=True, key="grp")
         d = M[M.PEER_GROUP == grp][["QUARTER_END", "BANK_NAME", "RETURN_ON_ASSETS"]]
         med = d.groupby("QUARTER_END", as_index=False).RETURN_ON_ASSETS.median().assign(BANK_NAME="Peer median")
-        lines = alt.Chart(d).mark_line(point=True, strokeWidth=2).encode(
-            x=alt.X("QUARTER_END:N", title=None), y=alt.Y("RETURN_ON_ASSETS:Q", title="Return on assets", axis=alt.Axis(format=".2%")),
-            color=alt.Color("BANK_NAME:N", title=None, scale=alt.Scale(range=[BRASS, ASSAY, VERIFIED, REVIEW]), legend=alt.Legend(orient="bottom")),
-            tooltip=["BANK_NAME", "QUARTER_END", alt.Tooltip("RETURN_ON_ASSETS:Q", format=".2%")])
-        medl = alt.Chart(med).mark_line(strokeDash=[4, 4], color=MUTED).encode(x="QUARTER_END:N", y="RETURN_ON_ASSETS:Q",
-                                                                                 tooltip=["BANK_NAME", "QUARTER_END", alt.Tooltip("RETURN_ON_ASSETS:Q", format=".2%")])
+        both = pd.concat([d, med]).assign(KIND=lambda x: (x.BANK_NAME == "Peer median").map({True: "median", False: "bank"}))
+        names = sorted(d.BANK_NAME.unique()) + ["Peer median"]
+        chart = alt.Chart(both).mark_line(point=True, strokeWidth=2).encode(
+            x=alt.X("QUARTER_END:N", title=None, axis=alt.Axis(labelAngle=0, labelExpr="slice(datum.value, 0, 7)")),
+            y=alt.Y("RETURN_ON_ASSETS:Q", title="Return on assets", axis=alt.Axis(format=".2%", labelLimit=90, labelPadding=6)),
+            color=alt.Color("BANK_NAME:N", title=None, sort=names,
+                            scale=alt.Scale(domain=names, range=[BRASS, ASSAY, VERIFIED, REVIEW, MUTED]), legend=alt.Legend(orient="bottom", columns=3)),
+            strokeDash=alt.StrokeDash("KIND:N", scale=alt.Scale(domain=["bank", "median"], range=[[1, 0], [4, 4]]), legend=None),
+            tooltip=[alt.Tooltip("BANK_NAME", title="Bank"), alt.Tooltip("QUARTER_END", title="Quarter"),
+                     alt.Tooltip("RETURN_ON_ASSETS:Q", format=".2%", title="ROA")])
         st.markdown("**Return on assets, last 8 quarters**")
-        st.altair_chart((lines + medl).properties(height=300), use_container_width=True)
+        st.altair_chart(chart.properties(height=300, padding={"left": 8}), use_container_width=True)
     with c2, st.container(border=True):
         st.markdown(f"**Watchlist signals** &nbsp; <span class='pill ai'>Rules in WATCHLIST_SIGNALS</span>", unsafe_allow_html=True)
         for name in sorted({s[0] for s in SIGNALS}):
@@ -395,7 +403,7 @@ with tab_notes:
             "Status": "✔ Verified" if n["status"] == "verified" else "⚠ Needs review", "Subject": n["subject"],
             "Test draft": bool(n.get("injected_claim", n.get("injected"))), "Quarter": str(n["quarter_end"]),
             "Claims checked": n.get("claims_checked"), "Rejected": len(n["findings"]),
-            "Run time (s)": round((n["draft_ms"] + n["verify_ms"]) / 1000, 1)} for n in rows])
+            "Run time (s)": round(((n.get("draft_ms") or 0) + (n.get("verify_ms") or 0)) / 1000, 1) or None} for n in rows])
         ev = st.dataframe(df, hide_index=True, use_container_width=True, on_select="rerun", selection_mode="single-row")
         st.caption("Select a row to read the note with its assay margin.")
         if ev.selection.rows:

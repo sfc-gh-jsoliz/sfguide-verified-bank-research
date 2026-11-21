@@ -276,6 +276,7 @@ def load_reports(session):
         d = {k.lower(): v for k, v in r.as_dict().items()}
         for k in ("peers", "fact_pack", "findings"):
             d[k] = json.loads(d[k]) if isinstance(d[k], str) else (d[k] or [])
+        d["claims_checked"] = d.get("claims_checked") or 0
         d["citations"] = cite_figures(d["report_md"], d["fact_pack"])
         out.append(d)
     return out
