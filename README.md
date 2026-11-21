@@ -2,7 +2,7 @@
 
 **An AI research note is only useful if every number in it can be checked.** This pack drafts peer research notes on banks with Snowflake Cortex AI. The drafting model may use only a governed fact pack of call-report figures. A second Cortex call fact-checks every claim, and a deterministic matcher ties every figure to its source row. A note that passes gets the *Verified* hallmark; anything else is marked *Needs review*.
 
-The app is branded as **Assaywell Research**, a fictional bank research desk (see [docs/DESIGN.md](docs/DESIGN.md)).
+The app is branded as **Verified Bank Research**, the research desk of a fictional bank (see [docs/DESIGN.md](docs/DESIGN.md)).
 
 - **Guide:** https://sfc-gh-jsoliz.github.io/sfguide-verified-bank-research/
 - **Try it, no account:** https://sfc-gh-jsoliz.github.io/sfguide-verified-bank-research/try/
@@ -57,7 +57,7 @@ cd app && streamlit run streamlit_app.py      # opens in Sample mode
 ## Run it live
 
 1. **Setup.** Run [`app/setup_synthetic.sql`](app/setup_synthetic.sql) top to bottom in one worksheet (about 11 to 15 seconds). For real US call-report data, mount the free **Financial Data Package** listing (`SNOWFLAKE_PUBLIC_DATA_FINANCIAL_PACKAGE`) and run [`app/setup.sql`](app/setup.sql) instead.
-2. **App, option A: Streamlit in Snowflake.** Upload `app/streamlit_app.py`, `app/research.py`, `app/environment.yml`, `app/.streamlit/config.toml` and `app/sample/*.json` to the stage `SNOWPACK_BANK_RESEARCH.CORE.APP_STAGE` (keep the folder structure), then:
+2. **App, option A: Streamlit in Snowflake (not yet verified in Snowsight).** Upload `app/streamlit_app.py`, `app/research.py`, `app/environment.yml`, `app/.streamlit/config.toml` and `app/sample/*.json` to the stage `SNOWPACK_BANK_RESEARCH.CORE.APP_STAGE` (keep the folder structure), then:
    ```sql
    USE ROLE SNOWPACK_BANK_RESEARCH_ROLE;
    CREATE OR REPLACE STREAMLIT SNOWPACK_BANK_RESEARCH.CORE.VERIFIED_BANK_RESEARCH_APP
@@ -106,7 +106,7 @@ Measured in a test account on an XSMALL warehouse in November 2026:
 - **The agent's answers are not verified.** Ask the desk answers from SQL results but can still add qualitative wording ("about half"); only notes go through the verifier.
 - **Sample mode replays captured runs.** In Sample mode the peers are the subject's peer group and the quarter is 2026-06-30; Live mode lets you choose both.
 - **The real-data path (`app/setup.sql`) was not re-run for v2.** The listing wasn't mounted in the test account. The view logic is from the earlier version, and peer groups are derived from total assets.
-- **Streamlit in Snowflake:** the app object was created and its files staged in testing, but the UI was exercised locally against Snowflake with key-pair auth, not inside Snowsight.
+- **Streamlit in Snowflake: not yet verified in Snowsight.** The app object was created and its files staged in testing, but the UI was exercised locally against Snowflake with key-pair auth, not inside Snowsight.
 - Synthetic data only. Watchlist thresholds are illustrative.
 
 ## Customize with Cortex Code
